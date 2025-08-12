@@ -8,9 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 
 export default function Expenses() {
-  const { expenses, categories, accounts, addExpense, settings } = useFinance();
+  const { expenses, categories, accounts, addExpense, updateExpense, deleteExpense, settings } = useFinance();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", categoryId: categories[0]?.id || "", amount: 0, accountId: accounts[0]?.id || "", date: new Date().toISOString(), budgetId: null as string | null });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", categoryId: categories[0]?.id || "", amount: 0, accountId: accounts[0]?.id || "", date: new Date().toISOString(), budgetId: null as string | null });
 
   useEffect(() => { document.title = "Expenses — Personal Finance"; }, []);
 
@@ -46,6 +49,32 @@ export default function Expenses() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Expense</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-3">
+              <Input placeholder="Name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+              <Input type="number" placeholder="Amount" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} />
+              <Select value={editForm.categoryId} onValueChange={(v) => setEditForm(f => ({ ...f, categoryId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent>
+                  {categories.filter(c => c.type !== "income").map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={editForm.accountId} onValueChange={(v) => setEditForm(f => ({ ...f, accountId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Account" /></SelectTrigger>
+                <SelectContent>
+                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name} · {a.currency}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Input type="date" value={format(new Date(editForm.date), "yyyy-MM-dd")} onChange={e => setEditForm(f => ({ ...f, date: new Date(e.target.value).toISOString() }))} />
+              <Button onClick={() => { if (editingId) updateExpense(editingId, editForm); setEditOpen(false); setEditingId(null); }}>Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -60,6 +89,7 @@ export default function Expenses() {
                   <th className="py-2">Amount</th>
                   <th className="py-2">Account</th>
                   <th className="py-2">Date</th>
+                  <th className="py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -73,6 +103,12 @@ export default function Expenses() {
                       <td className="py-2">{e.amount.toFixed(2)} {acc.currency}</td>
                       <td className="py-2">{acc.name}</td>
                       <td className="py-2">{format(new Date(e.date), "PP")}</td>
+                      <td className="py-2 text-right">
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button variant="outline" size="sm" onClick={() => { setEditingId(e.id); setEditForm({ name: e.name, categoryId: e.categoryId, amount: e.amount, accountId: e.accountId, date: e.date, budgetId: e.budgetId ?? null }); setEditOpen(true); }}>Edit</Button>
+                          <Button variant="destructive" size="sm" onClick={() => { if (confirm("Delete this expense?")) deleteExpense(e.id); }}>Delete</Button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}

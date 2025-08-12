@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const currencies: Currency[] = ["USD", "EUR", "GBP", "JPY", "MXN", "ARS", "COP", "CLP"];
+const currencies: Currency[] = ["USD", "EUR", "GBP", "JPY", "MXN", "ARS", "COP", "CLP", "CHF"];
 
 export default function Settings() {
   const { settings, updateSettings } = useFinance();
@@ -46,7 +46,7 @@ export default function Settings() {
           </div>
           <button
             className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 transition-smooth hover:opacity-90"
-            onClick={() => updateSettings({ baseCurrency: base, monthStartDay, exchangeRates: rates })}
+            onClick={() => updateSettings({ baseCurrency: base, monthStartDay, exchangeRates: { ...rates } })}
           >
             Save Settings
           </button>

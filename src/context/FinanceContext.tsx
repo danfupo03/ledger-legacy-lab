@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, useEffect, ReactNode } from "react";
 import { addDays, addMonths, endOfDay, startOfDay } from "date-fns";
 
-export type Currency = "USD" | "EUR" | "GBP" | "JPY" | "MXN" | "ARS" | "COP" | "CLP";
+export type Currency = "USD" | "EUR" | "GBP" | "JPY" | "MXN" | "ARS" | "COP" | "CLP" | "CHF";
 
 export type AccountType = "Checking" | "Savings" | "Brokerage" | "Credit Card" | "Cash";
 
@@ -140,6 +140,7 @@ const defaultState: FinanceState = {
       ARS: 0.0011,
       COP: 0.00026,
       CLP: 0.0011,
+      CHF: 1.11,
     },
   },
 };
@@ -167,6 +168,20 @@ interface FinanceContextType extends FinanceState {
   addSavingGoal: (g: Omit<SavingGoal, "id">) => void;
   addDebt: (d: Omit<Debt, "id">) => void;
   updateSettings: (s: Partial<Settings>) => void;
+  updateAccount: (id: string, a: Partial<Account>) => void;
+  deleteAccount: (id: string) => void;
+  updateExpense: (id: string, e: Partial<Expense>) => void;
+  deleteExpense: (id: string) => void;
+  updateIncome: (id: string, i: Partial<Income>) => void;
+  deleteIncome: (id: string) => void;
+  updateCategory: (id: string, c: Partial<Category>) => void;
+  deleteCategory: (id: string) => void;
+  updateBudget: (id: string, b: Partial<Budget>) => void;
+  deleteBudget: (id: string) => void;
+  updateSavingGoal: (id: string, g: Partial<SavingGoal>) => void;
+  deleteSavingGoal: (id: string) => void;
+  updateDebt: (id: string, d: Partial<Debt>) => void;
+  deleteDebt: (id: string) => void;
 }
 
 const FinanceContext = createContext<FinanceContextType | null>(null);
@@ -200,6 +215,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     addSavingGoal: (g) => setState(s => ({ ...s, savingGoals: [...s.savingGoals, { ...g, id: uid("goal") }] })),
     addDebt: (d) => setState(s => ({ ...s, debts: [...s.debts, { ...d, id: uid("debt") }] })),
     updateSettings: (sPart) => setState(s => ({ ...s, settings: { ...s.settings, ...sPart } })),
+    updateAccount: (id, a) => setState(s => ({ ...s, accounts: s.accounts.map(x => x.id === id ? { ...x, ...a } : x) })),
+    deleteAccount: (id) => setState(s => ({ ...s, accounts: s.accounts.filter(x => x.id !== id) })),
+    updateExpense: (id, e) => setState(s => ({ ...s, expenses: s.expenses.map(x => x.id === id ? { ...x, ...e } : x) })),
+    deleteExpense: (id) => setState(s => ({ ...s, expenses: s.expenses.filter(x => x.id !== id) })),
+    updateIncome: (id, i) => setState(s => ({ ...s, incomes: s.incomes.map(x => x.id === id ? { ...x, ...i } : x) })),
+    deleteIncome: (id) => setState(s => ({ ...s, incomes: s.incomes.filter(x => x.id !== id) })),
+    updateCategory: (id, c) => setState(s => ({ ...s, categories: s.categories.map(x => x.id === id ? { ...x, ...c } : x) })),
+    deleteCategory: (id) => setState(s => ({ ...s, categories: s.categories.filter(x => x.id !== id) })),
+    updateBudget: (id, b) => setState(s => ({ ...s, budgets: s.budgets.map(x => x.id === id ? { ...x, ...b } : x) })),
+    deleteBudget: (id) => setState(s => ({ ...s, budgets: s.budgets.filter(x => x.id !== id) })),
+    updateSavingGoal: (id, g) => setState(s => ({ ...s, savingGoals: s.savingGoals.map(x => x.id === id ? { ...x, ...g } : x) })),
+    deleteSavingGoal: (id) => setState(s => ({ ...s, savingGoals: s.savingGoals.filter(x => x.id !== id) })),
+    updateDebt: (id, d) => setState(s => ({ ...s, debts: s.debts.map(x => x.id === id ? { ...x, ...d } : x) })),
+    deleteDebt: (id) => setState(s => ({ ...s, debts: s.debts.filter(x => x.id !== id) })),
   };
 
   return <FinanceContext.Provider value={api}>{children}</FinanceContext.Provider>;
