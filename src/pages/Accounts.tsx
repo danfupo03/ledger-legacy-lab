@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const types: AccountType[] = ["Checking", "Savings", "Brokerage", "Credit Card", "Cash"];
@@ -12,10 +13,10 @@ const currencies: Currency[] = ["USD", "EUR", "GBP", "JPY", "MXN", "ARS", "COP",
 export default function Accounts() {
   const { accounts, expenses, incomes, addAccount, updateAccount, deleteAccount, convertToBase, settings } = useFinance();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Omit<Account, "id">>({ name: "", type: "Checking", currency: settings.baseCurrency });
+  const [form, setForm] = useState<Omit<Account, "id">>({ name: "", type: "Checking", currency: settings.baseCurrency, initialAmount: 0 });
   const [editOpen, setEditOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Omit<Account, "id">>({ name: "", type: "Checking", currency: settings.baseCurrency });
+  const [editForm, setEditForm] = useState<Omit<Account, "id">>({ name: "", type: "Checking", currency: settings.baseCurrency, initialAmount: 0 });
 
   useEffect(() => { document.title = "Accounts — Personal Finance"; }, []);
 
@@ -37,21 +38,34 @@ export default function Accounts() {
               <DialogHeader>
                 <DialogTitle>New Account</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-3">
-                <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-                <Select value={form.type} onValueChange={(v: AccountType) => setForm(f => ({ ...f, type: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
-                  <SelectContent>
-                    {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={form.currency} onValueChange={(v: Currency) => setForm(f => ({ ...f, currency: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
-                  <SelectContent>
-                    {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button onClick={() => { addAccount(form); setOpen(false); setForm({ name: "", type: "Checking", currency: settings.baseCurrency }); }}>Save</Button>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="account-name">Account Name</Label>
+                  <Input id="account-name" placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-type">Account Type</Label>
+                  <Select value={form.type} onValueChange={(v: AccountType) => setForm(f => ({ ...f, type: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                    <SelectContent>
+                      {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-currency">Currency</Label>
+                  <Select value={form.currency} onValueChange={(v: Currency) => setForm(f => ({ ...f, currency: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
+                    <SelectContent>
+                      {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="initial-amount">Initial Amount</Label>
+                  <Input id="initial-amount" type="number" placeholder="Initial balance" value={form.initialAmount || ""} onChange={e => setForm(f => ({ ...f, initialAmount: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <Button onClick={() => { addAccount(form); setOpen(false); setForm({ name: "", type: "Checking", currency: settings.baseCurrency, initialAmount: 0 }); }}>Save</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -61,20 +75,33 @@ export default function Accounts() {
               <DialogHeader>
                 <DialogTitle>Edit Account</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-3">
-                <Input placeholder="Name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
-                <Select value={editForm.type} onValueChange={(v: AccountType) => setEditForm(f => ({ ...f, type: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
-                  <SelectContent>
-                    {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={editForm.currency} onValueChange={(v: Currency) => setEditForm(f => ({ ...f, currency: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
-                  <SelectContent>
-                    {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-account-name">Account Name</Label>
+                  <Input id="edit-account-name" placeholder="Name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-account-type">Account Type</Label>
+                  <Select value={editForm.type} onValueChange={(v: AccountType) => setEditForm(f => ({ ...f, type: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                    <SelectContent>
+                      {types.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-account-currency">Currency</Label>
+                  <Select value={editForm.currency} onValueChange={(v: Currency) => setEditForm(f => ({ ...f, currency: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
+                    <SelectContent>
+                      {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-initial-amount">Initial Amount</Label>
+                  <Input id="edit-initial-amount" type="number" placeholder="Initial balance" value={editForm.initialAmount || ""} onChange={e => setEditForm(f => ({ ...f, initialAmount: parseFloat(e.target.value) || 0 }))} />
+                </div>
                 <Button onClick={() => { if (editingId) updateAccount(editingId, editForm); setEditOpen(false); setEditingId(null); }}>Save Changes</Button>
               </div>
             </DialogContent>
@@ -91,7 +118,7 @@ export default function Accounts() {
                   <span>{acc.name}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm opacity-70">{acc.type} · {acc.currency}</span>
-                    <Button variant="outline" size="sm" onClick={() => { setEditingId(acc.id); setEditForm({ name: acc.name, type: acc.type, currency: acc.currency }); setEditOpen(true); }}>Edit</Button>
+                    <Button variant="outline" size="sm" onClick={() => { setEditingId(acc.id); setEditForm({ name: acc.name, type: acc.type, currency: acc.currency, initialAmount: acc.initialAmount || 0 }); setEditOpen(true); }}>Edit</Button>
                     <Button variant="destructive" size="sm" onClick={() => { if (confirm("Delete this account?")) deleteAccount(acc.id); }}>Delete</Button>
                   </div>
                 </CardTitle>

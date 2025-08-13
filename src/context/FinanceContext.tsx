@@ -10,6 +10,7 @@ export interface Account {
   name: string;
   type: AccountType;
   currency: Currency;
+  initialAmount?: number; // initial balance in account currency
   note?: string;
 }
 
