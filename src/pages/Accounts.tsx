@@ -21,9 +21,11 @@ export default function Accounts() {
   useEffect(() => { document.title = "Accounts — Personal Finance"; }, []);
 
   const totals = (id: string) => {
-    const exp = expenses.filter(e => e.accountId === id).reduce((s, e) => s + convertToBase(e.amount, accounts.find(a => a.id === id)!.currency), 0);
-    const inc = incomes.filter(i => i.accountId === id).reduce((s, i) => s + convertToBase(i.amount, accounts.find(a => a.id === id)!.currency), 0);
-    return { exp, inc, bal: inc - exp };
+    const account = accounts.find(a => a.id === id)!;
+    const exp = expenses.filter(e => e.accountId === id).reduce((s, e) => s + convertToBase(e.amount, account.currency), 0);
+    const inc = incomes.filter(i => i.accountId === id).reduce((s, i) => s + convertToBase(i.amount, account.currency), 0);
+    const initial = convertToBase(account.initialAmount || 0, account.currency);
+    return { exp, inc, bal: initial + inc - exp };
   };
 
   return (
