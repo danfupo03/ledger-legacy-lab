@@ -17,12 +17,12 @@ export default function Expenses() {
   const [editForm, setEditForm] = useState({ name: "", categoryId: categories[0]?.id || "", amount: 0, accountId: accounts[0]?.id || "", date: new Date().toISOString(), budgetId: null as string | null });
   
   // Filters
-  const [filters, setFilters] = useState({ search: "", category: "", account: "", dateFrom: "", dateTo: "" });
+  const [filters, setFilters] = useState({ search: "", category: "all", account: "all", dateFrom: "", dateTo: "" });
   
   const filteredExpenses = expenses.filter(e => {
     if (filters.search && !e.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    if (filters.category && e.categoryId !== filters.category) return false;
-    if (filters.account && e.accountId !== filters.account) return false;
+    if (filters.category !== "all" && e.categoryId !== filters.category) return false;
+    if (filters.account !== "all" && e.accountId !== filters.account) return false;
     if (filters.dateFrom && new Date(e.date) < new Date(filters.dateFrom)) return false;
     if (filters.dateTo && new Date(e.date) > new Date(filters.dateTo)) return false;
     return true;
@@ -128,14 +128,14 @@ export default function Expenses() {
             <Select value={filters.category} onValueChange={(v) => setFilters(f => ({ ...f, category: v }))}>
               <SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.filter(c => c.type !== "income").map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filters.account} onValueChange={(v) => setFilters(f => ({ ...f, account: v }))}>
               <SelectTrigger><SelectValue placeholder="All Accounts" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Accounts</SelectItem>
+                <SelectItem value="all">All Accounts</SelectItem>
                 {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
