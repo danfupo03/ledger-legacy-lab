@@ -4,6 +4,7 @@ import {
   useMemo,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import { addDays, addMonths, endOfDay, startOfDay } from "date-fns";
@@ -61,6 +62,17 @@ export interface Income {
   categoryId?: string | null;
 }
 
+export interface Transfer {
+  id: string;
+  name: string;
+  amount: number;
+  fromAccountId: string;
+  toAccountId: string;
+  date: string;
+  exchangeRate?: number;
+  note?: string;
+}
+
 export type Recurrence = "monthly" | "weekly" | "yearly";
 
 export interface Budget {
@@ -103,6 +115,7 @@ export interface FinanceState {
   categories: Category[];
   expenses: Expense[];
   incomes: Income[];
+  transfers: Transfer[];
   budgets: Budget[];
   savingGoals: SavingGoal[];
   debts: Debt[];
@@ -135,6 +148,11 @@ export interface FinanceContextType extends FinanceState {
   deleteSavingGoal: (id: string) => Promise<void>;
   updateDebt: (id: string, d: Partial<Debt>) => Promise<void>;
   deleteDebt: (id: string) => Promise<void>;
+  addTransfer: (t: Omit<Transfer, "id">) => void;
+  updateTransfer: (id: string, t: Partial<Transfer>) => void;
+  deleteTransfer: (id: string) => void;
+  getAccountBalance: (accountId: string) => number;
+  getAccountBalanceInBaseCurrency: (accountId: string) => number;
 }
 
 const defaultState: FinanceState = {
@@ -142,6 +160,7 @@ const defaultState: FinanceState = {
   categories: [],
   expenses: [],
   incomes: [],
+  transfers: [],
   budgets: [],
   savingGoals: [],
   debts: [],
@@ -201,6 +220,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         categoriesRes,
         expensesRes,
         incomesRes,
+        transfersRes,
         budgetsRes,
         savingGoalsRes,
         debtsRes,
@@ -210,6 +230,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         supabase.from("categories").select("*"),
         supabase.from("expenses").select("*"),
         supabase.from("incomes").select("*"),
+        supabase.from("transfers").select("*"),
         supabase.from("budgets").select("*"),
         supabase.from("saving_goals").select("*"),
         supabase.from("debts").select("*"),
@@ -223,6 +244,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       );
       const expenses = (expensesRes.data || []).map(transformExpenseFromDB);
       const incomes = (incomesRes.data || []).map(transformIncomeFromDB);
+      const transfers = (transfersRes.data || []).map(transformTransferFromDB);
       const budgets = (budgetsRes.data || []).map(transformBudgetFromDB);
       const savingGoals = (savingGoalsRes.data || []).map(
         transformSavingGoalFromDB
@@ -237,6 +259,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         categories,
         expenses,
         incomes,
+        transfers,
         budgets,
         savingGoals,
         debts,
@@ -320,6 +343,29 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     category_id: income.categoryId,
   });
 
+  // Funciones de transformación para transferencias
+  const transformTransferFromDB = (dbTransfer: any): Transfer => ({
+    id: dbTransfer.id,
+    name: dbTransfer.name,
+    amount: dbTransfer.amount,
+    fromAccountId: dbTransfer.from_account_id,
+    toAccountId: dbTransfer.to_account_id,
+    date: dbTransfer.date,
+    exchangeRate: dbTransfer.exchange_rate,
+    note: dbTransfer.note,
+  });
+
+  const transformTransferToDB = (transfer: Transfer) => ({
+    id: transfer.id,
+    name: transfer.name,
+    amount: transfer.amount,
+    from_account_id: transfer.fromAccountId,
+    to_account_id: transfer.toAccountId,
+    date: transfer.date,
+    exchange_rate: transfer.exchangeRate,
+    note: transfer.note,
+  });
+
   const transformBudgetFromDB = (dbBudget: any): Budget => ({
     id: dbBudget.id,
     name: dbBudget.name,
@@ -390,14 +436,94 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     exchange_rates: settings.exchangeRates,
   });
 
-  const convertToBase = (amount: number, currency: Currency) => {
-    const rate = state.settings.exchangeRates[currency] ?? 1;
-    return amount * rate;
-  };
+  const convertToBase = useCallback(
+    (amount: number, currency: Currency) => {
+      const rate = state.settings.exchangeRates[currency] ?? 1;
+      return amount * rate;
+    },
+    [state.settings.exchangeRates]
+  );
 
   const currentPeriod = useMemo(
     () => periodFor(new Date(), state.settings.monthStartDay),
     [state.settings.monthStartDay]
+  );
+
+  // Función para calcular el balance de una cuenta incluyendo transferencias
+  // IMPORTANTE: Usar useCallback para que tenga acceso al estado actualizado
+  const getAccountBalance = useCallback(
+    (accountId: string): number => {
+      const account = state.accounts.find((a) => a.id === accountId);
+      if (!account) return 0;
+
+      const initialAmount = account.initialAmount || 0;
+
+      // Sumar ingresos
+      const incomeTotal = state.incomes
+        .filter((i) => i.accountId === accountId)
+        .reduce((sum, i) => sum + i.amount, 0);
+
+      // Restar gastos
+      const expenseTotal = state.expenses
+        .filter((e) => e.accountId === accountId)
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      // Sumar transferencias recibidas (convertidas a la moneda de la cuenta)
+      const transfersIn = (state.transfers || [])
+        .filter((t) => t.toAccountId === accountId)
+        .reduce((sum, t) => {
+          const fromAccount = state.accounts.find(
+            (a) => a.id === t.fromAccountId
+          );
+          if (!fromAccount) return sum;
+
+          // Si las cuentas tienen la misma moneda, no hay conversión
+          if (fromAccount.currency === account.currency) {
+            return sum + t.amount;
+          }
+
+          // Si hay diferentes monedas, usar la tasa de cambio guardada o calcular una nueva
+          if (t.exchangeRate) {
+            return sum + t.amount * t.exchangeRate;
+          } else {
+            const amountInBaseCurrency =
+              t.amount *
+              (state.settings.exchangeRates[fromAccount.currency] || 1);
+            const amountInTargetCurrency =
+              amountInBaseCurrency /
+              (state.settings.exchangeRates[account.currency] || 1);
+            return sum + amountInTargetCurrency;
+          }
+        }, 0);
+
+      // Restar transferencias enviadas
+      const transfersOut = (state.transfers || [])
+        .filter((t) => t.fromAccountId === accountId)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      return (
+        initialAmount + incomeTotal - expenseTotal + transfersIn - transfersOut
+      );
+    },
+    [
+      state.accounts,
+      state.incomes,
+      state.expenses,
+      state.transfers,
+      state.settings.exchangeRates,
+    ]
+  );
+
+  // Función para obtener el balance en moneda base
+  const getAccountBalanceInBaseCurrency = useCallback(
+    (accountId: string): number => {
+      const account = state.accounts.find((a) => a.id === accountId);
+      if (!account) return 0;
+
+      const balance = getAccountBalance(accountId);
+      return convertToBase(balance, account.currency);
+    },
+    [state.accounts, getAccountBalance, convertToBase]
   );
 
   // CRUD Functions
@@ -431,6 +557,69 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     if (!error) {
       setState((s) => ({ ...s, incomes: [...s.incomes, newIncome] }));
+    }
+  };
+
+  // Funciones CRUD para transferencias
+  const addTransfer = async (transfer: Omit<Transfer, "id">) => {
+    const newTransfer = { ...transfer, id: uid("transfer") };
+
+    // Calcular y guardar la tasa de cambio si las monedas son diferentes
+    const fromAccount = state.accounts.find(
+      (a) => a.id === transfer.fromAccountId
+    );
+    const toAccount = state.accounts.find((a) => a.id === transfer.toAccountId);
+
+    if (
+      fromAccount &&
+      toAccount &&
+      fromAccount.currency !== toAccount.currency
+    ) {
+      const amountInBase = convertToBase(transfer.amount, fromAccount.currency);
+      const amountInTarget =
+        amountInBase / (state.settings.exchangeRates[toAccount.currency] || 1);
+      newTransfer.exchangeRate = amountInTarget / transfer.amount;
+    }
+
+    const { error } = await supabase
+      .from("transfers")
+      .insert([transformTransferToDB(newTransfer)]);
+
+    if (!error) {
+      setState((s) => ({
+        ...s,
+        transfers: [...(s.transfers || []), newTransfer],
+      }));
+    }
+  };
+
+  const updateTransfer = async (
+    id: string,
+    transferPart: Partial<Transfer>
+  ) => {
+    const { error } = await supabase
+      .from("transfers")
+      .update(transformTransferToDB(transferPart as Transfer))
+      .eq("id", id);
+
+    if (!error) {
+      setState((s) => ({
+        ...s,
+        transfers: (s.transfers || []).map((x) =>
+          x.id === id ? { ...x, ...transferPart } : x
+        ),
+      }));
+    }
+  };
+
+  const deleteTransfer = async (id: string) => {
+    const { error } = await supabase.from("transfers").delete().eq("id", id);
+
+    if (!error) {
+      setState((s) => ({
+        ...s,
+        transfers: (s.transfers || []).filter((x) => x.id !== id),
+      }));
     }
   };
 
@@ -687,6 +876,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     addAccount,
     addExpense,
     addIncome,
+    addTransfer,
     addCategory,
     addBudget,
     addSavingGoal,
@@ -698,6 +888,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     deleteExpense,
     updateIncome,
     deleteIncome,
+    updateTransfer,
+    deleteTransfer,
     updateCategory,
     deleteCategory,
     updateBudget,
@@ -706,6 +898,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     deleteSavingGoal,
     updateDebt,
     deleteDebt,
+    getAccountBalance,
+    getAccountBalanceInBaseCurrency,
   };
 
   return (

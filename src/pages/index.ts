@@ -2,6 +2,7 @@ export { default as Dashboard } from "./Dashboard";
 export { default as Accounts } from "./Accounts";
 export { default as Expenses } from "./Expenses";
 export { default as Incomes } from "./Incomes";
+export { default as Transfers } from "./Transfers";
 export { default as Categories } from "./Categories";
 export { default as Budgets } from "./Budgets";
 export { default as Savings } from "./Savings";

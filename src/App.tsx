@@ -4,7 +4,18 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
-import { Dashboard, Accounts, Expenses, Incomes, Categories, Budgets, Savings, Debts, Settings } from "./pages";
+import {
+  Dashboard,
+  Accounts,
+  Expenses,
+  Incomes,
+  Categories,
+  Budgets,
+  Savings,
+  Debts,
+  Settings,
+  Transfers,
+} from "./pages";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +56,14 @@ const App = () => (
             element={
               <AppLayout>
                 <Incomes />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/transfers"
+            element={
+              <AppLayout>
+                <Transfers />
               </AppLayout>
             }
           />
