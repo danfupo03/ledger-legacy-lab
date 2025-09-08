@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function Debts() {
   const { debts, addDebt, updateDebt, deleteDebt, settings } = useFinance();
@@ -28,10 +29,15 @@ export default function Debts() {
               <DialogTitle>New Debt</DialogTitle>
             </DialogHeader>
             <div className="grid gap-3">
+              <Label htmlFor="name">Name</Label>
               <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              <Label htmlFor="current-balance">Current Balance</Label>
               <Input type="number" placeholder={`Current Balance (${settings.baseCurrency})`} value={form.currentBalance} onChange={e => setForm(f => ({ ...f, currentBalance: parseFloat(e.target.value) || 0 }))} />
+              <Label htmlFor="total-amount">Total Amount</Label>
               <Input type="number" placeholder={`Total Amount (${settings.baseCurrency})`} value={form.totalAmount} onChange={e => setForm(f => ({ ...f, totalAmount: parseFloat(e.target.value) || 0 }))} />
+              <Label htmlFor="interest-rate">Interest Rate</Label>
               <Input type="number" placeholder="Interest Rate (%)" value={form.interestRate} onChange={e => setForm(f => ({ ...f, interestRate: parseFloat(e.target.value) || 0 }))} />
+              <Label htmlFor="due-date">Due Date</Label>
               <Input type="date" value={form.dueDate.slice(0,10)} onChange={e => setForm(f => ({ ...f, dueDate: new Date(e.target.value).toISOString() }))} />
               <Button onClick={() => { addDebt(form); setOpen(false); }}>Save</Button>
             </div>
@@ -44,10 +50,15 @@ export default function Debts() {
               <DialogTitle>Edit Debt</DialogTitle>
             </DialogHeader>
             <div className="grid gap-3">
+              <Label htmlFor="edit-name">Name</Label>
               <Input placeholder="Name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+              <Label htmlFor="edit-current-balance">Current Balance</Label>
               <Input type="number" placeholder={`Current Balance (${settings.baseCurrency})`} value={editForm.currentBalance} onChange={e => setEditForm(f => ({ ...f, currentBalance: parseFloat(e.target.value) || 0 }))} />
+              <Label htmlFor="edit-total-amount">Total Amount</Label>
               <Input type="number" placeholder={`Total Amount (${settings.baseCurrency})`} value={editForm.totalAmount} onChange={e => setEditForm(f => ({ ...f, totalAmount: parseFloat(e.target.value) || 0 }))} />
+              <Label htmlFor="edit-interest-rate">Interest Rate</Label>
               <Input type="number" placeholder="Interest Rate (%)" value={editForm.interestRate} onChange={e => setEditForm(f => ({ ...f, interestRate: parseFloat(e.target.value) || 0 }))} />
+              <Label htmlFor="edit-due-date">Due Date</Label>
               <Input type="date" value={editForm.dueDate.slice(0,10)} onChange={e => setEditForm(f => ({ ...f, dueDate: new Date(e.target.value).toISOString() }))} />
               <Button onClick={() => { if (editingId) updateDebt(editingId, editForm); setEditOpen(false); setEditingId(null); }}>Save Changes</Button>
             </div>
@@ -66,7 +77,7 @@ export default function Debts() {
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{d.name}</div>
                     <div className="flex items-center gap-2">
-                      <div className="text-sm opacity-70">{pct.toFixed(0)}% paid</div>
+                      <div className="text-sm opacity-70">{pct.toFixed(0)}% remaining</div>
                       <Button variant="outline" size="sm" onClick={() => { setEditingId(d.id); setEditForm({ name: d.name, currentBalance: d.currentBalance, totalAmount: d.totalAmount, interestRate: d.interestRate ?? 0, dueDate: d.dueDate ?? new Date().toISOString() }); setEditOpen(true); }}>Edit</Button>
                       <Button variant="destructive" size="sm" onClick={() => { if (confirm("Delete this debt?")) deleteDebt(d.id); }}>Delete</Button>
                     </div>
